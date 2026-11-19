@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">মুকিয়াঘোনা ইসলামিক যুব সংগঠন</string>
+    <string name="org_full_name">পূর্ব হারবাং মুকিয়াঘোনা ইসলামিক যুব সংগঠন</string>
+    <string name="org_motto">একতা • সেবা • আদর্শ সমাজ গঠন</string>
+    <string name="org_location">পূর্ব হারবাং, মুকিয়াঘোনা, চকরিয়া, কক্সবাজার</string>
+    <string name="sign_in_google">Google দিয়ে সাইন ইন করুন</string>
+    <string name="sign_out">সাইন আউট</string>
+    <string name="nav_home">হোম</string>
+    <string name="nav_members">সদস্য</string>
+    <string name="nav_finance">তহবিল</string>
+    <string name="nav_activities">কার্যক্রম</string>
+    <string name="nav_profile">প্রোফাইল</string>
+    <string name="cd_org_banner">সংগঠনের ব্যানার চিত্র</string>
+    <string name="cd_user_avatar">সদস্যের প্রোফাইল ছবি</string>
+    <string name="cd_add_action">নতুন যোগ করুন</string>
+    <string name="cd_share_report">রিপোর্ট শেয়ার করুন</string>
+    <string name="error_generic">একটি ত্রুটি হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।</string>
+</resources>

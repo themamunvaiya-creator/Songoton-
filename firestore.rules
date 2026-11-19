@@ -1,0 +1,213 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (
+          'email' in request.auth.token &&
+          request.auth.token.email == 'mnmamunmama@gmail.com' &&
+          'email_verified' in request.auth.token &&
+          request.auth.token.email_verified == true
+        )
+      );
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             (!('email' in data) || data.email == null || (data.email is string && data.email.size() <= 120)) &&
+             data.designation is string && data.designation.size() >= 1 && data.designation.size() <= 50 &&
+             data.branchName is string && data.branchName.size() >= 1 && data.branchName.size() <= 100 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidMember(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 80 &&
+             data.role is string && data.role.size() >= 2 && data.role.size() <= 50 &&
+             data.phone is string && data.phone.size() <= 20 &&
+             data.bloodGroup is string && data.bloodGroup.size() <= 16 &&
+             data.area is string && data.area.size() <= 80 &&
+             data.activeStatus in ['ACTIVE', 'INACTIVE'] &&
+             data.monthlyFeeBdt is int && data.monthlyFeeBdt >= 0 && data.monthlyFeeBdt <= 1000000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidTransaction(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 100 &&
+             data.txType in ['INCOME', 'EXPENSE'] &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 50 &&
+             data.amountBdt is int && data.amountBdt > 0 && data.amountBdt <= 10000000 &&
+             data.memberName is string && data.memberName.size() <= 80 &&
+             data.dateLabel is string && data.dateLabel.size() <= 30 &&
+             data.note is string && data.note.size() <= 300 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidEvent(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 100 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 50 &&
+             data.eventDate is string && data.eventDate.size() >= 1 && data.eventDate.size() <= 40 &&
+             data.venue is string && data.venue.size() >= 1 && data.venue.size() <= 100 &&
+             data.description is string && data.description.size() <= 500 &&
+             data.status in ['UPCOMING', 'COMPLETED'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidNotice(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 100 &&
+             data.message is string && data.message.size() >= 2 && data.message.size() <= 600 &&
+             data.priority in ['URGENT', 'NORMAL'] &&
+             data.authorName is string && data.authorName.size() <= 80 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && isSignedIn() && request.auth.uid == adminUid;
+      allow list, write: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'designation', 'branchName', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'email', 'designation', 'branchName', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isValidId(userId) &&
+                       (isOwner(userId) || isAdmin()) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'designation', 'branchName', 'updatedAt']);
+
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+
+      match /members/{memberId} {
+        allow get: if isValidId(userId) && isValidId(memberId) && (isOwner(userId) || isAdmin());
+        allow list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+
+        allow create: if isValidId(userId) && isValidId(memberId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         incoming().keys().hasAll(['userId', 'fullName', 'role', 'phone', 'bloodGroup', 'area', 'activeStatus', 'monthlyFeeBdt', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'fullName', 'role', 'phone', 'bloodGroup', 'area', 'activeStatus', 'monthlyFeeBdt', 'createdAt', 'updatedAt']) &&
+                         isValidMember(incoming(), userId);
+
+        allow update: if isValidId(userId) && isValidId(memberId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         isValidMember(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         (isAdmin() || incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'role', 'phone', 'bloodGroup', 'area', 'activeStatus', 'monthlyFeeBdt', 'updatedAt']));
+
+        allow delete: if isValidId(userId) && isValidId(memberId) && (isOwner(userId) || isAdmin());
+      }
+
+      match /transactions/{transactionId} {
+        allow get: if isValidId(userId) && isValidId(transactionId) && (isOwner(userId) || isAdmin());
+        allow list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+
+        allow create: if isValidId(userId) && isValidId(transactionId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         incoming().keys().hasAll(['userId', 'title', 'txType', 'category', 'amountBdt', 'memberName', 'dateLabel', 'note', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'txType', 'category', 'amountBdt', 'memberName', 'dateLabel', 'note', 'createdAt', 'updatedAt']) &&
+                         isValidTransaction(incoming(), userId);
+
+        allow update: if isValidId(userId) && isValidId(transactionId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         isValidTransaction(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         (isAdmin() || incoming().diff(existing()).affectedKeys().hasOnly(['title', 'txType', 'category', 'amountBdt', 'memberName', 'dateLabel', 'note', 'updatedAt']));
+
+        allow delete: if isValidId(userId) && isValidId(transactionId) && (isOwner(userId) || isAdmin());
+      }
+
+      match /events/{eventId} {
+        allow get: if isValidId(userId) && isValidId(eventId) && (isOwner(userId) || isAdmin());
+        allow list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+
+        allow create: if isValidId(userId) && isValidId(eventId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         incoming().keys().hasAll(['userId', 'title', 'category', 'eventDate', 'venue', 'description', 'status', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'category', 'eventDate', 'venue', 'description', 'status', 'createdAt', 'updatedAt']) &&
+                         isValidEvent(incoming(), userId);
+
+        allow update: if isValidId(userId) && isValidId(eventId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         isValidEvent(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           isAdmin() ||
+                           (
+                             existing().status != 'COMPLETED' &&
+                             (
+                               (incoming().status == 'UPCOMING' && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'category', 'eventDate', 'venue', 'description', 'updatedAt'])) ||
+                               (incoming().status == 'COMPLETED' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+                             )
+                           )
+                         );
+
+        allow delete: if isValidId(userId) && isValidId(eventId) && (isOwner(userId) || isAdmin());
+      }
+
+      match /notices/{noticeId} {
+        allow get: if isValidId(userId) && isValidId(noticeId) && (isOwner(userId) || isAdmin());
+        allow list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+
+        allow create: if isValidId(userId) && isValidId(noticeId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         incoming().keys().hasAll(['userId', 'title', 'message', 'priority', 'authorName', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'message', 'priority', 'authorName', 'createdAt', 'updatedAt']) &&
+                         isValidNotice(incoming(), userId);
+
+        allow update: if isValidId(userId) && isValidId(noticeId) &&
+                         (isOwner(userId) || isAdmin()) &&
+                         isValidNotice(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         (isAdmin() || incoming().diff(existing()).affectedKeys().hasOnly(['title', 'message', 'priority', 'authorName', 'updatedAt']));
+
+        allow delete: if isValidId(userId) && isValidId(noticeId) && (isOwner(userId) || isAdmin());
+      }
+    }
+  }
+}

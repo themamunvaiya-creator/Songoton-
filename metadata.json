@@ -1,0 +1,6 @@
+{
+  "name": "মুকিয়াঘোনা ইসলামিক যুব সংগঠন",
+  "description": "পূর্ব হারবাং মুকিয়াঘোনা ইসলামিক যুব সংগঠন — সদস্য, তহবিল, কার্যক্রম ও নোটিশ ব্যবস্থাপনা অ্যাপ।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

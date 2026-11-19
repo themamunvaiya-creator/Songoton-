@@ -1,0 +1,109 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated organization steward profile",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the profile owner" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "email": { "type": "string", "description": "Email address" },
+        "designation": { "type": "string", "description": "Role/designation inside the organization" },
+        "branchName": { "type": "string", "description": "Organization unit or branch name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": ["userId", "displayName", "designation", "branchName", "createdAt", "updatedAt"]
+    },
+    "Member": {
+      "title": "Member",
+      "description": "Organization member directory record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "fullName": { "type": "string", "description": "Member full name" },
+        "role": { "type": "string", "description": "Member role in organization" },
+        "phone": { "type": "string", "description": "Contact phone number" },
+        "bloodGroup": { "type": "string", "description": "Blood group for emergency network" },
+        "area": { "type": "string", "description": "Village or neighborhood" },
+        "activeStatus": { "type": "string", "enum": ["ACTIVE", "INACTIVE"], "description": "Membership status" },
+        "monthlyFeeBdt": { "type": "integer", "description": "Monthly subscription fee in BDT" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": ["userId", "fullName", "role", "phone", "bloodGroup", "area", "activeStatus", "monthlyFeeBdt", "createdAt", "updatedAt"]
+    },
+    "FundTransaction": {
+      "title": "FundTransaction",
+      "description": "Organization income, subscription, donation, and expense entry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "title": { "type": "string", "description": "Transaction description" },
+        "txType": { "type": "string", "enum": ["INCOME", "EXPENSE"], "description": "Income or Expense" },
+        "category": { "type": "string", "description": "Fund category" },
+        "amountBdt": { "type": "integer", "description": "Amount in BDT" },
+        "memberName": { "type": "string", "description": "Associated member or donor name" },
+        "dateLabel": { "type": "string", "description": "Human-readable date label" },
+        "note": { "type": "string", "description": "Additional notes" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": ["userId", "title", "txType", "category", "amountBdt", "memberName", "dateLabel", "note", "createdAt", "updatedAt"]
+    },
+    "OrgEvent": {
+      "title": "OrgEvent",
+      "description": "Organization program, social welfare event, or meeting",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "title": { "type": "string", "description": "Event title" },
+        "category": { "type": "string", "description": "Event category" },
+        "eventDate": { "type": "string", "description": "Scheduled date and time" },
+        "venue": { "type": "string", "description": "Event location" },
+        "description": { "type": "string", "description": "Event details" },
+        "status": { "type": "string", "enum": ["UPCOMING", "COMPLETED"], "description": "Event completion status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": ["userId", "title", "category", "eventDate", "venue", "description", "status", "createdAt", "updatedAt"]
+    },
+    "Notice": {
+      "title": "Notice",
+      "description": "Official organization announcement or notice",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "title": { "type": "string", "description": "Notice headline" },
+        "message": { "type": "string", "description": "Notice body" },
+        "priority": { "type": "string", "enum": ["URGENT", "NORMAL"], "description": "Urgency level" },
+        "authorName": { "type": "string", "description": "Issuer name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": ["userId", "title", "message", "priority", "authorName", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated steward profile document"
+    },
+    "/users/{userId}/members/{memberId}": {
+      "schema": { "$ref": "#/entities/Member" },
+      "description": "Organization member directory"
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/FundTransaction" },
+      "description": "Organization income and expense ledger"
+    },
+    "/users/{userId}/events/{eventId}": {
+      "schema": { "$ref": "#/entities/OrgEvent" },
+      "description": "Organization activities and events"
+    },
+    "/users/{userId}/notices/{noticeId}": {
+      "schema": { "$ref": "#/entities/Notice" },
+      "description": "Organization announcements and notices"
+    }
+  }
+}
